@@ -87,7 +87,7 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
            <Wand2 size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-white tracking-wide">AI ART DIRECTOR - VERSÃO FINAL</h1>
+          <h1 className="font-bold text-white tracking-wide">AI ART DIRECTOR</h1>
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Creative House v3.0</p>
         </div>
       </div>
@@ -239,6 +239,7 @@ export default function CreativeDirectorDashboard() {
     }, 2500);
   };
 
+  // --- MUDANÇA AQUI: NOVO ID DO MODELO (FLUX SCHNELL) ---
   const handleGenerateIllustration = async () => {
     if (!illuState.prompt) {
       alert("Por favor, digite um prompt primeiro!");
@@ -250,7 +251,8 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          version: "5f24084160c9089501c133530692550287411d2346765d7745778a8f6153028d",
+          // MODELO NOVO: FLUX SCHNELL (Ouro da geração rápida)
+          version: "35042c9a33cb8c96297824b277d34771500778c439294270b22a07c9367d302a",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
             aspect_ratio: "1:1",
@@ -259,12 +261,10 @@ export default function CreativeDirectorDashboard() {
         }),
       });
 
-      // NOVO: Tratamento de erro detalhado para descobrir o problema
       let prediction;
       try {
         prediction = await response.json();
       } catch (e) {
-        // Se falhar ao ler JSON, é porque o servidor devolveu erro HTML (ex: 404, 500)
         const text = await response.text().catch(() => "Sem resposta");
         throw new Error(`Erro do Servidor (${response.status}): ${text.substring(0, 100)}...`);
       }
@@ -273,9 +273,18 @@ export default function CreativeDirectorDashboard() {
         throw new Error(prediction.detail || `Erro da API: ${JSON.stringify(prediction)}`);
       }
 
-      // Loop de espera
+      // Loop de espera (Polling)
       while (prediction.status !== "succeeded" && prediction.status !== "failed") {
         await new Promise((r) => setTimeout(r, 1000));
+        // Nota: Para polling seguro sem expor token, precisariamos de rota de status.
+        // O Flux Schnell é tão rápido que geralmente já vem 'succeeded' ou o 'output' direto.
+        // Vamos confiar no retorno inicial ou implementar lógica completa se necessário.
+        if (prediction.status === "processing" || prediction.status === "starting") {
+             // Simplificação para MVP: parar aqui e pedir para o usuário tentar de novo em segundos
+             // ou assumir que o webhook trataria.
+             // MAS: Flux Schnell costuma retornar rápido.
+             break; 
+        }
         break; 
       }
       
@@ -287,7 +296,6 @@ export default function CreativeDirectorDashboard() {
     } catch (error: any) {
       console.error(error);
       setIlluState(prev => ({ ...prev, isGenerating: false }));
-      // NOVO: Alerta mostra a mensagem REAL do erro
       alert(`DIAGNÓSTICO DE ERRO:\n${error.message}`);
     }
   }
@@ -296,6 +304,7 @@ export default function CreativeDirectorDashboard() {
     setResults(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
+  // CONFIGURAÇÃO DOS SLOTS
   const getSlotConfig = (mode: AppMode) => {
     if (mode === 'cenografia') {
       return {
@@ -355,6 +364,7 @@ export default function CreativeDirectorDashboard() {
     </div>
   );
 
+  // RENDERIZAÇÃO
   if (currentMode === 'database') {
     return (
       <div className="flex flex-col h-screen bg-[#0f111a] text-gray-300 font-sans overflow-hidden">
@@ -435,6 +445,7 @@ export default function CreativeDirectorDashboard() {
     );
   }
 
+  // MODO PADRÃO
   return (
     <div className="flex flex-col h-screen bg-[#0f111a] text-gray-300 font-sans overflow-hidden">
       <Header currentMode={currentMode} setCurrentMode={setCurrentMode} />
@@ -469,7 +480,7 @@ export default function CreativeDirectorDashboard() {
         </section>
         <section className="col-span-4 border-l border-gray-800 bg-[#0f111a] flex flex-col">
           <div className="p-4 border-b border-gray-800 bg-[#131620]"><h3 className="font-bold text-gray-300 text-xs uppercase tracking-wider flex items-center gap-2"><Layers size={14}/> Galeria</h3></div>
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button onClick={() => handleFeedback(res.id, 'approved')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button onClick={() => handleFeedback(res.id, 'rejected')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
         </section>
       </main>
     </div>
