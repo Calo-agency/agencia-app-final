@@ -87,7 +87,7 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
            <Wand2 size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-white tracking-wide">AI ART DIRECTOR</h1>
+          <h1 className="font-bold text-white tracking-wide">AI ART DIRECTOR - VERSÃO FINAL</h1>
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Creative House v3.0</p>
         </div>
       </div>
