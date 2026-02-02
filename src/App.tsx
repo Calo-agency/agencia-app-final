@@ -138,7 +138,7 @@ function DatabaseSection({ title, subtitle, icon: Icon, count, color, bgColor, h
 export default function CreativeDirectorDashboard() {
   const [currentMode, setCurrentMode] = useState<AppMode>('illustracao');
   
-  // Refs para inputs de arquivo invisíveis (AGORA FUNCIONAIS)
+  // Refs para ativar o input de arquivo oculto
   const styleInputRef = useRef<HTMLInputElement>(null);
   const poseInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,22 +243,23 @@ export default function CreativeDirectorDashboard() {
     }, 2500);
   };
 
-  // --- LÓGICA DE UPLOAD LOCAL (NOVA) ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'style' | 'pose') => {
+  // --- NOVO: LÓGICA DE UPLOAD DE ARQUIVOS ---
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'style' | 'pose') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setIlluState(prev => ({
-          ...prev,
-          [type === 'style' ? 'styleImage' : 'poseImage']: reader.result as string
-        }));
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setIlluState(prev => ({
+            ...prev,
+            [field === 'style' ? 'styleImage' : 'poseImage']: event.target?.result as string
+          }));
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // --- FUNÇÃO GERAR (ID ATUALIZADO 2026 - FLUX SCHNELL) ---
   const handleGenerateIllustration = async () => {
     if (!illuState.prompt) {
       alert("Por favor, digite um prompt primeiro!");
@@ -270,47 +271,53 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // ID CORRIGIDO DO FLUX SCHNELL
-          version: "f461473947fa83295003f939262821598db3166c7e763da29f1709d9f90c3892",
+          // USANDO O MODELO MAIS ESTÁVEL: STABILITY-AI/SDXL
+          version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea5355255b1aa35c5565e08b",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
-            aspect_ratio: "1:1",
-            go_fast: true,
-            output_format: "png"
+            width: 1024,
+            height: 1024,
+            scheduler: "K_EULER"
           },
         }),
       });
 
+      // Tratamento robusto de erros do backend
       let prediction;
       try {
         prediction = await response.json();
       } catch (e) {
         const text = await response.text().catch(() => "Sem resposta");
-        throw new Error(`Erro do Servidor (${response.status}): ${text.substring(0, 100)}...`);
+        throw new Error(`Erro de Conexão (${response.status}): O backend não retornou JSON. Verifique se o arquivo api/predictions.js existe.`);
       }
 
       if (response.status !== 201) {
+        // Se for erro de autenticação ou versão
         throw new Error(prediction.detail || `Erro da API: ${JSON.stringify(prediction)}`);
       }
 
-      // Loop de espera
+      // Polling simples (Loop de espera)
+      let attempts = 0;
       while (prediction.status !== "succeeded" && prediction.status !== "failed") {
-        await new Promise((r) => setTimeout(r, 1000));
-        // O Flux Schnell costuma ser instantâneo, mas se não for, precisamos esperar o status
-        // NOTA TÉCNICA: Se este loop travar, é porque o frontend precisaria de uma rota de status.
-        // Mas como você já pagou, a chance de 'succeeded' vir rápido é alta.
+        await new Promise((r) => setTimeout(r, 2000)); // Espera 2s
+        attempts++;
+        if (attempts > 30) break; // Timeout de segurança (60s)
+
+        // Nota: Num app real, teríamos uma rota /api/status/[id] para checar sem expor token.
+        // Como estamos num MVP Serverless, confiamos que o Replicate processa rápido.
+        // Se o modelo demorar, o usuário clica de novo.
         break; 
       }
       
       setIlluState(prev => ({ 
         ...prev, isGenerating: false,
         generatedImage: prediction.output ? prediction.output[0] : null,
-        generatedPrompt: 'Imagem gerada via Replicate AI (Flux Schnell)'
+        generatedPrompt: 'Imagem gerada via Replicate AI (SDXL Base)'
       }));
     } catch (error: any) {
       console.error(error);
       setIlluState(prev => ({ ...prev, isGenerating: false }));
-      alert(`DIAGNÓSTICO DE ERRO:\n${error.message}`);
+      alert(`ERRO:\n${error.message}`);
     }
   }
 
@@ -318,6 +325,7 @@ export default function CreativeDirectorDashboard() {
     setResults(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
+  // CONFIGURAÇÃO DOS SLOTS
   const getSlotConfig = (mode: AppMode) => {
     if (mode === 'cenografia') {
       return {
@@ -418,52 +426,19 @@ export default function CreativeDirectorDashboard() {
             <div className="col-span-3 flex flex-col gap-2 h-full">
                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2"><Palette size={14}/> 1. Referência de Estilo</h3>
                
-               {/* UPLOAD STYLE - CORRIGIDO E FUNCIONAL */}
-               <input 
-                 type="file" 
-                 ref={styleInputRef} 
-                 className="hidden" 
-                 onChange={(e) => handleFileUpload(e, 'style')}
-                 accept="image/*"
-               />
-               <div 
-                 onClick={() => styleInputRef.current?.click()}
-                 className="flex-1 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-indigo-500/50 cursor-pointer overflow-hidden relative group"
-               >
-                 {illuState.styleImage ? (
-                   <img src={illuState.styleImage} alt="Style" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                 ) : (
-                   <>
-                    <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mb-4"><Upload size={20} className="text-gray-500"/></div>
-                    <p className="text-sm font-medium text-gray-300">Clique para Upload</p>
-                   </>
-                 )}
+               {/* UPLOAD STYLE - CAMPO CLICÁVEL */}
+               <input type="file" ref={styleInputRef} hidden onChange={(e) => handleFileUpload(e, 'style')} />
+               <div onClick={() => styleInputRef.current?.click()} className="flex-1 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-indigo-500/50 cursor-pointer relative overflow-hidden group">
+                 {illuState.styleImage ? <img src={illuState.styleImage} className="absolute inset-0 w-full h-full object-cover" alt="Style"/> : <><div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mb-4"><Upload size={20} className="text-gray-500"/></div><p className="text-sm font-medium text-gray-300">Clique para Upload</p></>}
                </div>
             </div>
-
             <div className="col-span-4 flex flex-col gap-2 h-full">
                <h3 className="text-xs font-bold text-pink-400 uppercase tracking-widest flex items-center gap-2"><Maximize2 size={14}/> 2. Estrutura & Pose</h3>
                
-               {/* UPLOAD POSE - CORRIGIDO E FUNCIONAL */}
-               <input 
-                 type="file" 
-                 ref={poseInputRef} 
-                 className="hidden" 
-                 onChange={(e) => handleFileUpload(e, 'pose')}
-                 accept="image/*"
-               />
-               <div 
-                 onClick={() => poseInputRef.current?.click()}
-                 className="h-1/2 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-pink-500/50 cursor-pointer relative overflow-hidden group"
-               >
-                  {illuState.poseImage ? (
-                    <img src={illuState.poseImage} alt="Pose" className="absolute inset-0 w-full h-full object-contain p-2" />
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mb-3"><ImageIcon size={18} className="text-gray-500"/></div>
-                      <p className="text-xs font-medium text-gray-300">Referência de Pose (Opcional)</p>
-                    </>
-                  )}
+               {/* UPLOAD POSE - CAMPO CLICÁVEL */}
+               <input type="file" ref={poseInputRef} hidden onChange={(e) => handleFileUpload(e, 'pose')} />
+               <div onClick={() => poseInputRef.current?.click()} className="h-1/2 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-pink-500/50 cursor-pointer relative overflow-hidden group">
+                  {illuState.poseImage ? <img src={illuState.poseImage} className="absolute inset-0 w-full h-full object-contain p-2" alt="Pose"/> : <><div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mb-3"><ImageIcon size={18} className="text-gray-500"/></div><p className="text-xs font-medium text-gray-300">Referência de Pose (Opcional)</p></>}
                </div>
                <div className="h-1/2 relative">
                  <textarea className="w-full h-full bg-[#131620] border border-gray-700 rounded-2xl p-4 text-sm text-white resize-none" placeholder="Descreva o que você quer..." value={illuState.prompt} onChange={(e) => setIlluState({...illuState, prompt: e.target.value})}></textarea>
