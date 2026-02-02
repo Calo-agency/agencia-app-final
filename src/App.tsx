@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
   Layers, Lightbulb, Palette, Box, Wand2, Upload, X, Check, RefreshCw, 
-  LayoutTemplate, Image as ImageIcon, Maximize2, FileText, Search, 
-  Database, Grid, Tent, Type, PenTool, Stamp, Sparkles, Copy, Sliders
+  LayoutTemplate, Image as ImageIcon, Maximize2, 
+  Database, Grid, Tent, Type, PenTool, Stamp, Sparkles, Sliders, ArrowRight, Copy
 } from 'lucide-react';
 
-// --- 1. DEFINIÇÃO DE TIPOS ---
+// --- 1. TIPOS ---
 type CardType = 'structure' | 'light' | 'style' | 'elements';
 type AppMode = 'kv' | 'cenografia' | 'illustracao' | 'selos' | 'database';
 
@@ -32,8 +32,7 @@ interface GeneratedResult {
   mixDescription: string;
 }
 
-// --- 2. FUNÇÕES AUXILIARES ---
-
+// --- 2. HELPERS VISUAIS ---
 function getGradient(mode: AppMode) {
   switch(mode) {
     case 'cenografia': return 'bg-gradient-to-r from-cyan-600 to-blue-600';
@@ -55,35 +54,31 @@ function getColorClass(mode: AppMode) {
 function BadgeMode({ mode }: { mode: AppMode }) {
   let label = 'Modo Gráfico';
   let color = 'bg-indigo-900 text-indigo-200';
-  
   if (mode === 'cenografia') { label = 'Modo Arquitetura'; color = 'bg-cyan-900 text-cyan-200'; }
   if (mode === 'illustracao') { label = 'Modo Arte Digital'; color = 'bg-orange-900 text-orange-200'; }
   if (mode === 'selos') { label = 'Modo Branding'; color = 'bg-purple-900 text-purple-200'; }
-
   return <span className={`text-[9px] px-1.5 py-0.5 rounded ${color}`}>{label}</span>;
 }
 
 function ModeBadge({ mode }: { mode: AppMode }) {
    let label = '2D GRAPHICS';
    let color = 'bg-indigo-600';
-
    if (mode === 'cenografia') { label = '3D ARCHITECTURE'; color = 'bg-cyan-600'; }
    if (mode === 'illustracao') { label = 'DIGITAL ART'; color = 'bg-orange-600'; }
    if (mode === 'selos') { label = 'BRANDING 3D'; color = 'bg-purple-600'; }
-
    return <span className={`text-[10px] px-2 py-0.5 rounded-full ${color}`}>{label}</span>;
 }
 
-// --- 3. SUB-COMPONENTES (HEADER, SECTIONS) ---
+// --- 3. COMPONENTES ---
 
 function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurrentMode: (m: AppMode) => void }) {
-  const tabs: {id: AppMode, label: string, icon?: any}[] = [
+  const tabs = [
     { id: 'kv', label: 'KV Studio', icon: Wand2 },
     { id: 'cenografia', label: 'Cenografia', icon: Tent },
     { id: 'illustracao', label: 'Ilustração', icon: PenTool },
     { id: 'selos', label: 'Selos/Naming', icon: Stamp },
     { id: 'database', label: 'Banco de Dados', icon: Database },
-  ];
+  ] as const;
 
   return (
     <header className="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-[#0f111a] z-10 flex-shrink-0">
@@ -96,30 +91,20 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Creative House v3.0</p>
         </div>
       </div>
-      
       <div className="flex bg-gray-900 p-1 rounded-lg border border-gray-800 gap-1">
-        {tabs.map(tab => {
-          const isActive = currentMode === tab.id;
-          const Icon = tab.icon;
-          return (
-            <button 
-              key={tab.id}
-              onClick={() => setCurrentMode(tab.id)}
+        {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setCurrentMode(tab.id as AppMode)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center gap-1.5 
-                ${isActive ? 'bg-gray-700 text-white shadow-lg ring-1 ring-gray-600' : 'text-gray-400 hover:text-white hover:bg-gray-800'}
-                ${isActive && tab.id === 'kv' ? '!bg-indigo-600 !ring-indigo-500' : ''}
-                ${isActive && tab.id === 'cenografia' ? '!bg-cyan-600 !ring-cyan-500' : ''}
-                ${isActive && tab.id === 'illustracao' ? '!bg-orange-600 !ring-orange-500' : ''}
-                ${isActive && tab.id === 'selos' ? '!bg-purple-600 !ring-purple-500' : ''}
-              `}
-            >
-              {Icon && <Icon size={12}/>}
-              {tab.label}
+                ${currentMode === tab.id ? 'bg-gray-700 text-white shadow-lg ring-1 ring-gray-600' : 'text-gray-400 hover:text-white hover:bg-gray-800'}
+                ${currentMode === tab.id && tab.id === 'kv' ? '!bg-indigo-600 !ring-indigo-500' : ''}
+                ${currentMode === tab.id && tab.id === 'cenografia' ? '!bg-cyan-600 !ring-cyan-500' : ''}
+                ${currentMode === tab.id && tab.id === 'illustracao' ? '!bg-orange-600 !ring-orange-500' : ''}
+                ${currentMode === tab.id && tab.id === 'selos' ? '!bg-purple-600 !ring-purple-500' : ''}
+              `}>
+              <tab.icon size={12}/> {tab.label}
             </button>
-          )
-        })}
+        ))}
       </div>
-
       <div className="flex items-center gap-4">
         <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 overflow-hidden flex items-center justify-center text-xs text-white">CD</div>
       </div>
@@ -140,7 +125,6 @@ function DatabaseSection({ title, subtitle, icon: Icon, count, color, bgColor, h
         </div>
         <span className="bg-gray-800 text-xs px-2 py-1 rounded text-gray-400 border border-gray-700">{count}</span>
       </div>
-      
       <div className={`border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-xl h-32 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-800/40 ${hoverBorder} transition-all mb-4`}>
         <Upload size={24} className="text-gray-600 mb-2 group-hover:text-white transition-colors"/>
         <span className="text-sm font-medium text-gray-400">Upload de Assets</span>
@@ -149,7 +133,7 @@ function DatabaseSection({ title, subtitle, icon: Icon, count, color, bgColor, h
   );
 }
 
-// --- 4. COMPONENTE PRINCIPAL (MAIN) ---
+// --- 4. APLICAÇÃO PRINCIPAL ---
 
 export default function CreativeDirectorDashboard() {
   const [currentMode, setCurrentMode] = useState<AppMode>('illustracao');
@@ -220,7 +204,7 @@ export default function CreativeDirectorDashboard() {
     }
   ];
 
-  // FUNÇÕES DE AÇÃO
+  // AÇÕES
   const handleCardClick = (card: ReferenceCard) => {
     setSlots(prev => ({ ...prev, [card.type]: card }));
   };
@@ -353,7 +337,7 @@ export default function CreativeDirectorDashboard() {
     </div>
   );
 
-  // VIEW: BANCO DE DADOS
+  // RENDERIZAÇÃO
   if (currentMode === 'database') {
     return (
       <div className="flex flex-col h-screen bg-[#0f111a] text-gray-300 font-sans overflow-hidden">
@@ -375,7 +359,6 @@ export default function CreativeDirectorDashboard() {
     );
   }
 
-  // VIEW: ILUSTRAÇÃO
   if (currentMode === 'illustracao') {
     return (
       <div className="flex flex-col h-screen bg-[#0f111a] text-gray-300 font-sans overflow-hidden">
@@ -412,7 +395,18 @@ export default function CreativeDirectorDashboard() {
             <div className="col-span-5 flex flex-col gap-2 h-full">
                <h3 className="text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-2"><Sparkles size={14}/> 3. Resultado Final</h3>
                <div className="flex-1 bg-black rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center">
-                  {illuState.isGenerating ? <RefreshCw className="animate-spin text-green-500" size={32} /> : illuState.generatedImage ? <img src={illuState.generatedImage} className="w-full h-full object-contain" alt="Gen" /> : <div className="text-center opacity-30"><ArrowRight size={24} className="text-white mx-auto"/><p className="text-sm text-gray-400">Resultado aqui</p></div>}
+                  {illuState.isGenerating ? <RefreshCw className="animate-spin text-green-500" size={32} /> : illuState.generatedImage ? (illuState.generatedImage.startsWith('http') ? <img src={illuState.generatedImage} className="w-full h-full object-contain" alt="Gen" /> : <div className={`w-full h-full ${illuState.generatedImage}`}></div>) : <div className="text-center opacity-30"><ArrowRight size={24} className="text-white mx-auto"/><p className="text-sm text-gray-400">Resultado aqui</p></div>}
+               </div>
+               <div className="bg-[#131620] rounded-xl border border-gray-800 p-3 h-32 flex flex-col">
+                  <div className="flex justify-between items-center mb-2">
+                     <span className="text-[10px] font-bold text-gray-500 uppercase">Prompt de Engenharia (Gerado pela IA)</span>
+                     <button className="text-gray-500 hover:text-white flex items-center gap-1 text-[10px]"><Copy size={10}/> Copiar</button>
+                  </div>
+                  <div className="flex-1 bg-black/30 rounded p-2 overflow-y-auto">
+                     <p className="text-[11px] font-mono text-green-400/80 leading-relaxed">
+                        {illuState.isGenerating ? 'Aguardando geração...' : illuState.generatedPrompt || 'Aguardando input...'}
+                     </p>
+                  </div>
                </div>
                <button onClick={handleGenerateIllustration} disabled={illuState.isGenerating} className="h-14 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white transition-all">
                  {illuState.isGenerating ? 'Processando...' : <> RECRIAR NO ESTILO <Wand2 size={16}/> </>}
@@ -459,7 +453,7 @@ export default function CreativeDirectorDashboard() {
         </section>
         <section className="col-span-4 border-l border-gray-800 bg-[#0f111a] flex flex-col">
           <div className="p-4 border-b border-gray-800 bg-[#131620]"><h3 className="font-bold text-gray-300 text-xs uppercase tracking-wider flex items-center gap-2"><Layers size={14}/> Galeria</h3></div>
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button onClick={() => handleFeedback(res.id, 'approved')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button onClick={() => handleFeedback(res.id, 'rejected')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
         </section>
       </main>
     </div>
