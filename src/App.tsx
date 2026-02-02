@@ -251,7 +251,7 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // MODELO NOVO: FLUX SCHNELL (Ouro da geração rápida)
+          // USANDO O ID CORRETO DO FLUX SCHNELL
           version: "35042c9a33cb8c96297824b277d34771500778c439294270b22a07c9367d302a",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
