@@ -54,18 +54,22 @@ function getColorClass(mode: AppMode) {
 function BadgeMode({ mode }: { mode: AppMode }) {
   let label = 'Modo Gráfico';
   let color = 'bg-indigo-900 text-indigo-200';
+  
   if (mode === 'cenografia') { label = 'Modo Arquitetura'; color = 'bg-cyan-900 text-cyan-200'; }
   if (mode === 'illustracao') { label = 'Modo Arte Digital'; color = 'bg-orange-900 text-orange-200'; }
   if (mode === 'selos') { label = 'Modo Branding'; color = 'bg-purple-900 text-purple-200'; }
+
   return <span className={`text-[9px] px-1.5 py-0.5 rounded ${color}`}>{label}</span>;
 }
 
 function ModeBadge({ mode }: { mode: AppMode }) {
    let label = '2D GRAPHICS';
    let color = 'bg-indigo-600';
+
    if (mode === 'cenografia') { label = '3D ARCHITECTURE'; color = 'bg-cyan-600'; }
    if (mode === 'illustracao') { label = 'DIGITAL ART'; color = 'bg-orange-600'; }
    if (mode === 'selos') { label = 'BRANDING 3D'; color = 'bg-purple-600'; }
+
    return <span className={`text-[10px] px-2 py-0.5 rounded-full ${color}`}>{label}</span>;
 }
 
@@ -91,6 +95,7 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Creative House v3.0</p>
         </div>
       </div>
+      
       <div className="flex bg-gray-900 p-1 rounded-lg border border-gray-800 gap-1">
         {tabs.map(tab => (
             <button key={tab.id} onClick={() => setCurrentMode(tab.id as AppMode)}
@@ -105,6 +110,7 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
             </button>
         ))}
       </div>
+
       <div className="flex items-center gap-4">
         <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 overflow-hidden flex items-center justify-center text-xs text-white">CD</div>
       </div>
@@ -239,7 +245,7 @@ export default function CreativeDirectorDashboard() {
     }, 2500);
   };
 
-  // --- FUNÇÃO GERAR (VOLTANDO PARA O FLUX SCHNELL QUE FUNCIONOU) ---
+  // --- FUNÇÃO GERAR (CORRIGIDA COM O ID QUE FUNCIONOU) ---
   const handleGenerateIllustration = async () => {
     if (!illuState.prompt) {
       alert("Por favor, digite um prompt primeiro!");
@@ -251,8 +257,8 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // ESTE É O ID QUE FUNCIONOU (DEU 429, O QUE É BOM SINAL)
-          version: "35042c9a33cb8c96297824b277d34771500778c439294270b22a07c9367d302a",
+          // ESTE É O ID DO PRINT 429 (QUE FUNCIONOU!)
+          version: "5f24084160c9089501c133530692550287411d2346765d7745778a8f6153028d",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
             aspect_ratio: "1:1",
@@ -276,15 +282,15 @@ export default function CreativeDirectorDashboard() {
       // Loop de espera
       while (prediction.status !== "succeeded" && prediction.status !== "failed") {
         await new Promise((r) => setTimeout(r, 1000));
-        // Se o status for 429 de novo, significa que os créditos ainda não caíram.
-        // Mas se caíram, vai passar direto aqui.
+        // Se a API for muito rápida, já pode vir com output.
+        // Se demorar, o usuário clica de novo.
         break; 
       }
       
       setIlluState(prev => ({ 
         ...prev, isGenerating: false,
         generatedImage: prediction.output ? prediction.output[0] : null,
-        generatedPrompt: 'Imagem gerada via Replicate AI (Flux Schnell)'
+        generatedPrompt: 'Imagem gerada via Replicate AI (Flux Model)'
       }));
     } catch (error: any) {
       console.error(error);
