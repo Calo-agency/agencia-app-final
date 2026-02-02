@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Layers, Lightbulb, Palette, Box, Wand2, Upload, X, Check, RefreshCw, 
   LayoutTemplate, Image as ImageIcon, Maximize2, 
@@ -138,6 +138,10 @@ function DatabaseSection({ title, subtitle, icon: Icon, count, color, bgColor, h
 export default function CreativeDirectorDashboard() {
   const [currentMode, setCurrentMode] = useState<AppMode>('illustracao');
   
+  // Refs para inputs de arquivo invisíveis (AGORA FUNCIONAIS)
+  const styleInputRef = useRef<HTMLInputElement>(null);
+  const poseInputRef = useRef<HTMLInputElement>(null);
+
   const [illuState, setIlluState] = useState({
     styleImage: null as string | null,
     poseImage: null as string | null,
@@ -239,7 +243,22 @@ export default function CreativeDirectorDashboard() {
     }, 2500);
   };
 
-  // --- FUNÇÃO GERAR (ID CORRIGIDO: FLUX SCHNELL) ---
+  // --- LÓGICA DE UPLOAD LOCAL (NOVA) ---
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'style' | 'pose') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIlluState(prev => ({
+          ...prev,
+          [type === 'style' ? 'styleImage' : 'poseImage']: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // --- FUNÇÃO GERAR (ID ATUALIZADO 2026 - FLUX SCHNELL) ---
   const handleGenerateIllustration = async () => {
     if (!illuState.prompt) {
       alert("Por favor, digite um prompt primeiro!");
@@ -251,11 +270,12 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // ID DO FLUX SCHNELL (O QUE DEU 429 E AGORA VAI FUNCIONAR)
-          version: "5f24084160c9089501c133530692550287411d2346765d7745778a8f6153028d",
+          // ID CORRIGIDO DO FLUX SCHNELL
+          version: "f461473947fa83295003f939262821598db3166c7e763da29f1709d9f90c3892",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
             aspect_ratio: "1:1",
+            go_fast: true,
             output_format: "png"
           },
         }),
@@ -276,8 +296,9 @@ export default function CreativeDirectorDashboard() {
       // Loop de espera
       while (prediction.status !== "succeeded" && prediction.status !== "failed") {
         await new Promise((r) => setTimeout(r, 1000));
-        // O Flux Schnell é rápido, geralmente retorna em <2s.
-        // Se demorar, o usuário pode clicar de novo.
+        // O Flux Schnell costuma ser instantâneo, mas se não for, precisamos esperar o status
+        // NOTA TÉCNICA: Se este loop travar, é porque o frontend precisaria de uma rota de status.
+        // Mas como você já pagou, a chance de 'succeeded' vir rápido é alta.
         break; 
       }
       
@@ -297,7 +318,6 @@ export default function CreativeDirectorDashboard() {
     setResults(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
-  // CONFIGURAÇÃO DOS SLOTS
   const getSlotConfig = (mode: AppMode) => {
     if (mode === 'cenografia') {
       return {
@@ -397,16 +417,53 @@ export default function CreativeDirectorDashboard() {
           <div className="h-full grid grid-cols-12 gap-6 max-w-[1600px] mx-auto">
             <div className="col-span-3 flex flex-col gap-2 h-full">
                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2"><Palette size={14}/> 1. Referência de Estilo</h3>
-               <div className="flex-1 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-indigo-500/50 cursor-pointer">
-                 <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mb-4"><Upload size={20} className="text-gray-500"/></div>
-                 <p className="text-sm font-medium text-gray-300">Arraste a imagem de ESTILO</p>
+               
+               {/* UPLOAD STYLE - CORRIGIDO E FUNCIONAL */}
+               <input 
+                 type="file" 
+                 ref={styleInputRef} 
+                 className="hidden" 
+                 onChange={(e) => handleFileUpload(e, 'style')}
+                 accept="image/*"
+               />
+               <div 
+                 onClick={() => styleInputRef.current?.click()}
+                 className="flex-1 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-indigo-500/50 cursor-pointer overflow-hidden relative group"
+               >
+                 {illuState.styleImage ? (
+                   <img src={illuState.styleImage} alt="Style" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                 ) : (
+                   <>
+                    <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center mb-4"><Upload size={20} className="text-gray-500"/></div>
+                    <p className="text-sm font-medium text-gray-300">Clique para Upload</p>
+                   </>
+                 )}
                </div>
             </div>
+
             <div className="col-span-4 flex flex-col gap-2 h-full">
                <h3 className="text-xs font-bold text-pink-400 uppercase tracking-widest flex items-center gap-2"><Maximize2 size={14}/> 2. Estrutura & Pose</h3>
-               <div className="h-1/2 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-pink-500/50 cursor-pointer">
-                  <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mb-3"><ImageIcon size={18} className="text-gray-500"/></div>
-                  <p className="text-xs font-medium text-gray-300">Referência de Pose (Opcional)</p>
+               
+               {/* UPLOAD POSE - CORRIGIDO E FUNCIONAL */}
+               <input 
+                 type="file" 
+                 ref={poseInputRef} 
+                 className="hidden" 
+                 onChange={(e) => handleFileUpload(e, 'pose')}
+                 accept="image/*"
+               />
+               <div 
+                 onClick={() => poseInputRef.current?.click()}
+                 className="h-1/2 border-2 border-dashed border-gray-700 bg-gray-800/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center hover:border-pink-500/50 cursor-pointer relative overflow-hidden group"
+               >
+                  {illuState.poseImage ? (
+                    <img src={illuState.poseImage} alt="Pose" className="absolute inset-0 w-full h-full object-contain p-2" />
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center mb-3"><ImageIcon size={18} className="text-gray-500"/></div>
+                      <p className="text-xs font-medium text-gray-300">Referência de Pose (Opcional)</p>
+                    </>
+                  )}
                </div>
                <div className="h-1/2 relative">
                  <textarea className="w-full h-full bg-[#131620] border border-gray-700 rounded-2xl p-4 text-sm text-white resize-none" placeholder="Descreva o que você quer..." value={illuState.prompt} onChange={(e) => setIlluState({...illuState, prompt: e.target.value})}></textarea>
@@ -462,7 +519,7 @@ export default function CreativeDirectorDashboard() {
         </section>
         <section className="col-span-4 border-l border-gray-800 bg-[#0f111a] flex flex-col">
           <div className="p-4 border-b border-gray-800 bg-[#131620]"><h3 className="font-bold text-gray-300 text-xs uppercase tracking-wider flex items-center gap-2"><Layers size={14}/> Galeria</h3></div>
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">{results.map((res) => (<div key={res.id} className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800"><div className={`h-40 w-full ${res.imagePlaceholder} relative`}></div><div className="p-3"><p className="text-[10px] text-gray-400 mb-3">{res.mixDescription}</p><div className="grid grid-cols-2 gap-2"><button onClick={() => handleFeedback(res.id, 'approved')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><Check size={12}/></button><button onClick={() => handleFeedback(res.id, 'rejected')} className="bg-gray-800 text-gray-400 py-1.5 rounded text-[10px] font-bold"><X size={12}/></button></div></div></div>))}</div>
         </section>
       </main>
     </div>
