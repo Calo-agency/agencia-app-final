@@ -32,7 +32,7 @@ interface GeneratedResult {
   mixDescription: string;
 }
 
-// --- 2. FUNÇÕES AUXILIARES (HELPERS) ---
+// --- 2. FUNÇÕES AUXILIARES ---
 
 function getGradient(mode: AppMode) {
   switch(mode) {
@@ -74,7 +74,7 @@ function ModeBadge({ mode }: { mode: AppMode }) {
    return <span className={`text-[10px] px-2 py-0.5 rounded-full ${color}`}>{label}</span>;
 }
 
-// --- 3. SUB-COMPONENTES (HEADER, DATABASE, SLOT) ---
+// --- 3. SUB-COMPONENTES (HEADER, SECTIONS) ---
 
 function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurrentMode: (m: AppMode) => void }) {
   const tabs: {id: AppMode, label: string, icon?: any}[] = [
@@ -424,7 +424,7 @@ export default function CreativeDirectorDashboard() {
     );
   }
 
-  // VIEW: MODO PADRÃO (KV/CENOGRAFIA/SELOS)
+  // MODO PADRÃO
   return (
     <div className="flex flex-col h-screen bg-[#0f111a] text-gray-300 font-sans overflow-hidden">
       <Header currentMode={currentMode} setCurrentMode={setCurrentMode} />
