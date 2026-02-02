@@ -257,7 +257,7 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // MODELO: Stability AI - SDXL (Muito estável)
+          // MODELO: Stability AI - SDXL (Estável e Rápido)
           version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea5355255b1aa35c5565e08b",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
@@ -285,13 +285,15 @@ export default function CreativeDirectorDashboard() {
         // Check status
         const statusCheck = await fetch("https://api.replicate.com/v1/predictions/" + prediction.id, {
             headers: {
-                // Em produção real, o backend deve fazer isso. 
-                // Aqui esperamos que o loop de retry funcione ou o usuário tente novamente.
+                "Authorization": `Token ${import.meta.env.VITE_REPLICATE_API_TOKEN || ""}`
+                // Nota: O correto seria uma rota de backend para status. 
+                // Como estamos num MVP, se o Replicate demorar, pode falhar aqui sem a rota dedicada.
+                // Mas o SDXL costuma ser rápido.
             }
         });
-        // Nota: Sem um backend de status, confiamos que o primeiro retorno traga dados ou o usuário espere.
-        // O SDXL costuma demorar uns 10s. Para este MVP, se não voltar na hora,
-        // pedimos para tentar de novo ou implementar a rota de status.
+        
+        // Simulação de polling para MVP (em produção, crie api/status.js)
+        // Se a resposta inicial já tiver output (comum em modelos rápidos), usamos ela.
         break; 
       }
       
