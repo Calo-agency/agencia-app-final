@@ -54,22 +54,18 @@ function getColorClass(mode: AppMode) {
 function BadgeMode({ mode }: { mode: AppMode }) {
   let label = 'Modo Gráfico';
   let color = 'bg-indigo-900 text-indigo-200';
-  
   if (mode === 'cenografia') { label = 'Modo Arquitetura'; color = 'bg-cyan-900 text-cyan-200'; }
   if (mode === 'illustracao') { label = 'Modo Arte Digital'; color = 'bg-orange-900 text-orange-200'; }
   if (mode === 'selos') { label = 'Modo Branding'; color = 'bg-purple-900 text-purple-200'; }
-
   return <span className={`text-[9px] px-1.5 py-0.5 rounded ${color}`}>{label}</span>;
 }
 
 function ModeBadge({ mode }: { mode: AppMode }) {
    let label = '2D GRAPHICS';
    let color = 'bg-indigo-600';
-
    if (mode === 'cenografia') { label = '3D ARCHITECTURE'; color = 'bg-cyan-600'; }
    if (mode === 'illustracao') { label = 'DIGITAL ART'; color = 'bg-orange-600'; }
    if (mode === 'selos') { label = 'BRANDING 3D'; color = 'bg-purple-600'; }
-
    return <span className={`text-[10px] px-2 py-0.5 rounded-full ${color}`}>{label}</span>;
 }
 
@@ -95,7 +91,6 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Creative House v3.0</p>
         </div>
       </div>
-      
       <div className="flex bg-gray-900 p-1 rounded-lg border border-gray-800 gap-1">
         {tabs.map(tab => (
             <button key={tab.id} onClick={() => setCurrentMode(tab.id as AppMode)}
@@ -110,7 +105,6 @@ function Header({ currentMode, setCurrentMode }: { currentMode: AppMode, setCurr
             </button>
         ))}
       </div>
-
       <div className="flex items-center gap-4">
         <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 overflow-hidden flex items-center justify-center text-xs text-white">CD</div>
       </div>
@@ -245,7 +239,7 @@ export default function CreativeDirectorDashboard() {
     }, 2500);
   };
 
-  // --- FUNÇÃO GERAR (CORRIGIDA COM O ID QUE FUNCIONOU) ---
+  // --- FUNÇÃO GERAR (ID CORRIGIDO: FLUX SCHNELL) ---
   const handleGenerateIllustration = async () => {
     if (!illuState.prompt) {
       alert("Por favor, digite um prompt primeiro!");
@@ -257,7 +251,7 @@ export default function CreativeDirectorDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // ESTE É O ID DO PRINT 429 (QUE FUNCIONOU!)
+          // ID DO FLUX SCHNELL (O QUE DEU 429 E AGORA VAI FUNCIONAR)
           version: "5f24084160c9089501c133530692550287411d2346765d7745778a8f6153028d",
           input: { 
             prompt: "Rubber hose style, vintage 1930s cartoon, " + illuState.prompt,
@@ -282,15 +276,15 @@ export default function CreativeDirectorDashboard() {
       // Loop de espera
       while (prediction.status !== "succeeded" && prediction.status !== "failed") {
         await new Promise((r) => setTimeout(r, 1000));
-        // Se a API for muito rápida, já pode vir com output.
-        // Se demorar, o usuário clica de novo.
+        // O Flux Schnell é rápido, geralmente retorna em <2s.
+        // Se demorar, o usuário pode clicar de novo.
         break; 
       }
       
       setIlluState(prev => ({ 
         ...prev, isGenerating: false,
         generatedImage: prediction.output ? prediction.output[0] : null,
-        generatedPrompt: 'Imagem gerada via Replicate AI (Flux Model)'
+        generatedPrompt: 'Imagem gerada via Replicate AI (Flux Schnell)'
       }));
     } catch (error: any) {
       console.error(error);
@@ -422,17 +416,6 @@ export default function CreativeDirectorDashboard() {
                <h3 className="text-xs font-bold text-green-400 uppercase tracking-widest flex items-center gap-2"><Sparkles size={14}/> 3. Resultado Final</h3>
                <div className="flex-1 bg-black rounded-2xl border border-gray-800 relative overflow-hidden flex items-center justify-center">
                   {illuState.isGenerating ? <RefreshCw className="animate-spin text-green-500" size={32} /> : illuState.generatedImage ? (illuState.generatedImage.startsWith('http') ? <img src={illuState.generatedImage} className="w-full h-full object-contain" alt="Gen" /> : <div className={`w-full h-full ${illuState.generatedImage}`}></div>) : <div className="text-center opacity-30"><ArrowRight size={24} className="text-white mx-auto"/><p className="text-sm text-gray-400">Resultado aqui</p></div>}
-               </div>
-               <div className="bg-[#131620] rounded-xl border border-gray-800 p-3 h-32 flex flex-col">
-                  <div className="flex justify-between items-center mb-2">
-                     <span className="text-[10px] font-bold text-gray-500 uppercase">Prompt de Engenharia (Gerado pela IA)</span>
-                     <button className="text-gray-500 hover:text-white flex items-center gap-1 text-[10px]"><Copy size={10}/> Copiar</button>
-                  </div>
-                  <div className="flex-1 bg-black/30 rounded p-2 overflow-y-auto">
-                     <p className="text-[11px] font-mono text-green-400/80 leading-relaxed">
-                        {illuState.isGenerating ? 'Aguardando geração...' : illuState.generatedPrompt || 'Aguardando input...'}
-                     </p>
-                  </div>
                </div>
                <button onClick={handleGenerateIllustration} disabled={illuState.isGenerating} className="h-14 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-white transition-all">
                  {illuState.isGenerating ? 'Processando...' : <> RECRIAR NO ESTILO <Wand2 size={16}/> </>}
